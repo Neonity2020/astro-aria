@@ -1,64 +1,80 @@
 ---
 layout: ../../layouts/post.astro
-title: How to Replace Google Safe Browsing with Cloudflare Zero Trust
-description: How to Replace Google Safe Browsing with Cloudflare Zero Trust
+title: Replacing Google Safe Browsing with Cloudflare Zero Trust
+description: Using Cloudflare Zero Trust Gateway and DNS-over-HTTPS (DoH) as a free, customizable alternative to Google Safe Browsing.
 dateFormatted: Jul 14th, 2024
 ---
 
-So, get this, right? I built the first version of [L(O\*62).ONG](https://loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo.ong/) using server-side redirects, but Google slapped me with a security warning the very next day. Talk about a buzzkill! I had to scramble and switch to local redirects with a warning message before sending folks on their way. Then came the fun part – begging Google for forgiveness.
+When I shipped the initial version of [L(O*62).ONG](https://loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo.ong/), I used immediate HTTP 301 server-side redirects. The very next day, Google flagged the site with a Deceptive Site / Security Warning. I had to scramble, add an interstitial confirmation warning before redirecting users, and submit an appeal to Google Search Console.
 
-Now, the smart money would've been on using Google Safe Browsing for redirects. But here's the catch: Safe Browsing's got a daily limit – 10,000 calls, and that's it. Plus, no custom lists. And since I'm all about keeping things simple and sticking with Cloudflare, Safe Browsing was a no-go.
+![Google Security Warning](https://static.miantiao.me/share/2024/k3g4qs/c3TrOQ.png)
 
-Fast forward to a while back, I was chewing the fat with someone online, and bam! It hit me like a bolt of lightning. Why not use a secure DNS server with built-in filters for adult content and all that shady stuff to check if a domain's on the up-and-up?  Figured I'd give [Family 1.1.1.1](https://blog.cloudflare.com/zh-cn/introducing-1-1-1-1-for-families-zh-cn/) a shot, and guess what? It actually worked!  Problem was, no custom lists there either.  Then I remembered messing around with Cloudflare Zero Trust Gateway back in my [HomeLab](https://www.awesome-homelab.com/) days.  Turns out, that was the golden ticket – a solution so good, it's almost criminal.
+The standard industry approach here is running destination URLs through Google Safe Browsing. But Safe Browsing has notable constraints: a free quota of 10,000 queries per day, and zero ability to configure custom whitelists or blacklists. Furthermore, because I wanted to keep the entire stack on Cloudflare without introducing external dependencies, I looked for alternatives.
 
-**Here's the deal: Cloudflare Zero Trust's Gateway comes packing a built-in DNS (DoH) server and lets you set up firewall rules like a boss. You can block stuff based on how risky a domain is, what kind of content it has, and even use your own custom naughty-and-nice lists. And get this – it pulls data from Cloudflare's own stash, over 30 open intelligence sources, fancy machine learning models, and even feedback from the community. Talk about covering all the bases! Want the nitty-gritty?  Hit up the [official documentation](https://developers.cloudflare.com/cloudflare-one/policies/gateway/domain-categories/#docs-content).**
+During a discussion with another developer, an idea struck: why not use a filtered DNS resolver (like family-safe DNS) to evaluate domain safety?
 
-So, I went ahead and blocked all the high-risk categories – adult stuff, gambling sites, government domains, anything NSFW, newly registered domains, you name it. Plus, I've got my own little blacklists and whitelists that I keep nice and tidy.
+I tested [1.1.1.1 for Families](https://blog.cloudflare.com/zh-cn/introducing-1-1-1-1-for-families-zh-cn/) first. Querying it via DNS-over-HTTPS (DoH) worked surprisingly well. If a domain resolved to `0.0.0.0`, it was considered blocked.
 
-![Risk List](https://static.miantiao.me/share/2024/ROJmki/CleanShot%202024-07-07%20at%2022.22.25.png)
+However, standard 1.1.1.1 doesn't allow custom domain overrides. Having used Cloudflare Zero Trust in my homelab before, I checked the **Cloudflare Zero Trust Gateway**—and it turned out to be an ideal match.
 
-Once I was done tweaking the settings, I got myself a shiny new DoH address:
+## Cloudflare Zero Trust Gateway as a Security Oracle
 
-![DoH](https://static.miantiao.me/share/2024/iY5dK8/CleanShot%202024-07-07%20at%2022.26.23.png)
+Cloudflare Zero Trust Gateway provides dedicated DoH endpoints where you can configure custom DNS firewall policies. You can block domains based on:
 
-To hook it up to my project, I used this handy-dandy code:
+- Security threat categories (malware, phishing, command-and-control)
+- Content categories (adult, gambling, newly seen domains)
+- Custom domain lists (manual whitelists and blacklists)
+
+Its threat intelligence pulls from Cloudflare's global edge traffic, 30+ external intelligence feeds, machine learning classifiers, and community reports. (See the [Cloudflare domain categories docs](https://developers.cloudflare.com/cloudflare-one/policies/gateway/domain-categories/#docs-content) for details).
+
+I configured a policy to block high-risk categories (adult content, gambling, newly registered domains, malware) and layered on custom domain rules:
+
+![Configuring Risk Lists](https://static.miantiao.me/share/2024/ROJmki/CleanShot%202024-07-07%20at%2022.22.25.png)
+
+Once configured, Zero Trust gives you a unique DoH endpoint URL:
+
+![DoH Endpoint URL](https://static.miantiao.me/share/2024/iY5dK8/CleanShot%202024-07-07%20at%2022.26.23.png)
+
+## Integration Code
+
+Here is how you can verify a destination URL before redirecting:
 
 ```js
 async function isSafeUrl(
   url,
-  DoH = "https://family.cloudflare-dns.com/dns-query"
+  DoH = 'https://family.cloudflare-dns.com/dns-query'
 ) {
-  let safe = false;
+  let safe = false
   try {
-    const { hostname } = new URL(url);
+    const { hostname } = new URL(url)
     const res = await fetch(`${DoH}?type=A&name=${hostname}`, {
       headers: {
-        accept: "application/dns-json",
+        accept: 'application/dns-json',
       },
       cf: {
         cacheEverything: true,
-        cacheTtlByStatus: { "200-299": 86400 },
+        cacheTtlByStatus: { '200-299': 86400 },
       },
-    });
-    const dnsResult = await res.json();
+    })
+    const dnsResult = await res.json()
     if (dnsResult && Array.isArray(dnsResult.Answer)) {
       const isBlock = dnsResult.Answer.some(
-        answer => answer.data === "0.0.0.0"
-      );
-      safe = !isBlock;
+        answer => answer.data === '0.0.0.0'
+      )
+      safe = !isBlock
     }
-  } catch (e) {
-    console.warn("isSafeUrl fail: ", url, e);
   }
-  return safe;
+  catch (e) {
+    console.warn('isSafeUrl fail: ', url, e)
+  }
+  return safe
 }
-
 ```
 
-And here's the kicker: Cloudflare Zero Trust's management panel has this sweet visualization interface that lets you see what's getting blocked and what's not.  You can see for yourself – it's got the kibosh on some adult sites and those brand-spanking-new domains.
+The Zero Trust dashboard also gives you visual logs showing which domains got blocked and why:
 
 ![Visualization Interface](https://static.miantiao.me/share/2024/5hOp5X/CleanShot%202024-07-07%20at%2022.30.36.png)
 
-Oh, and if a domain ends up on the wrong side of the tracks, you can always check the log to see what went down.
+If an unexpected block occurs, you can jump straight into the Gateway audit log to see the exact trigger category:
 
-![Log](https://static.miantiao.me/share/2024/EmRMB3/52WCkd.png)
+![Audit Log](https://static.miantiao.me/share/2024/EmRMB3/52WCkd.png)

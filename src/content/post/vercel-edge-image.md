@@ -1,27 +1,27 @@
 ---
 layout: ../../layouts/post.astro
-title: Using Vercel Edge to Process Images
-description: Using Vercel Edge to Process Images
+title: Processing Images with Vercel Edge Functions
+description: Running an image processing pipeline on Vercel Edge with WebAssembly, supporting format conversion, resize, crop, filters, and watermarks.
 dateFormatted: Dec 17th, 2023
 ---
 
-Previously, I shared an article on [using Cloudflare Worker to process images](https://dev.to/ccbikai/shi-yong-cloudflare-worker-chu-li-tu-pian-38dl-temp-slug-7437591). However, due to the limitations of the free version of Worker, which only allows for 10ms of CPU usage, there were frequent resource overages and high failure rates. Today, I had some free time, so I decided to try using Vercel Edge instead and share my findings with those who are interested.
+In an earlier post on [processing images with Cloudflare Workers](/post/cloudflare-worker-image), I ran into the strict 10 ms CPU execution limit on Cloudflare's free plan, which frequently timed out on larger photos. I had some free time today, so I ported the Wasm pipeline over to **Vercel Edge Functions** to see how it performs.
 
-The official version of Vercel also supports image processing, but it has a limit of 1000 original images per month and only supports scaling. By using Vercel Edge to process images, you can have additional features such as scaling, cropping, watermarking, and filters. However, please note that the free version of Vercel only allows for 100GB of monthly traffic, so it is recommended to use it in conjunction with a CDN for actual usage.
+Vercel offers native Image Optimization, but caps free accounts at 1,000 source images per month and only handles resizing. Running our own WebAssembly pipeline on Vercel Edge unlocks resizing, cropping, watermarking, and color filters with much higher transformation headroom. Keep in mind that Vercel's free plan includes 100GB of monthly bandwidth, so putting a CDN in front in production is a good idea.
 
 Supported features:
 
-1. Support for processing PNG, JPG, BMP, ICO, and TIFF format images
-2. Output images in JPG, PNG, and WEBP formats, with WEBP being the default
-3. Support for pipelining, allowing for multiple operations to be performed
-4. Support for whitelisting image URLs to prevent abuse
-5. Graceful degradation in case of processing failure, returning the original image (exceptions are not cached)
+1. Ingests PNG, JPG, BMP, ICO, and TIFF inputs.
+2. Encodes JPG, PNG, and WebP outputs (WebP is default).
+3. Supports pipeline chaining for multiple consecutive actions.
+4. Domain whitelist to prevent open-proxy abuse.
+5. Graceful fallback: returns the original image on processing failures (errors are not cached).
 
 ## Demo
 
 ### Format Conversion
 
-#### WEBP
+#### WebP
 
 ![webp](https://edge-image.miantiao.me/?url=https%3A%2F%2Fstatic.miantiao.me%2Fshare%2FMTyerw%2Fbanner-2048.jpeg&format=webp)
 
@@ -33,7 +33,7 @@ Supported features:
 
 ![png](https://edge-image.miantiao.me/?url=https%3A%2F%2Fstatic.miantiao.me%2Fshare%2FMTyerw%2Fbanner-2048.jpeg&format=png)
 
-### Scaling
+### Resizing
 
 ![resize](https://edge-image.miantiao.me/?url=https%3A%2F%2Fstatic.miantiao.me%2Fshare%2FMTyerw%2Fbanner-2048.jpeg&action=resize!830,400,2)
 
@@ -43,7 +43,7 @@ Supported features:
 
 ### Cropping
 
-![rotate](https://edge-image.miantiao.me/?url=https%3A%2F%2Fstatic.miantiao.me%2Fshare%2FMTyerw%2Fbanner-2048.jpeg&action=crop!0,0,1000,1000)
+![crop](https://edge-image.miantiao.me/?url=https%3A%2F%2Fstatic.miantiao.me%2Fshare%2FMTyerw%2Fbanner-2048.jpeg&action=crop!0,0,1000,1000)
 
 ### Filters
 
@@ -59,22 +59,22 @@ Supported features:
 
 ### Pipelining
 
-#### Scaling + Rotation + Text Watermark
+#### Resize + Rotate + Text Watermark
 
 ![resize & rotate & draw_text](https://edge-image.miantiao.me/?url=https%3A%2F%2Fstatic.miantiao.me%2Fshare%2FMTyerw%2Fbanner-2048.jpeg&action=resize!830,400,2%7Crotate!180%7Cdraw_text!miantiao.me,10,10)
 
-#### Scaling + Image Watermark
+#### Resize + Image Watermark
 
 ![resize & watermark](https://edge-image.miantiao.me/?url=https%3A%2F%2Fstatic.miantiao.me%2Fshare%2FMTyerw%2Fbanner-2048.jpeg&action=resize!830,400,2%7Cwatermark!https%3A%2F%2Fstatic.miantiao.me%2Fshare%2F6qIq4w%2FFhSUzU.png,10,10)
 
-In theory, it supports various operations available in Photon. If you are interested, you can check the image URLs and modify the parameters according to the [Photon documentation](https://docs.rs/photon-rs/latest/photon_rs/) to try it out yourself. If you encounter any issues, please leave a comment and provide feedback.
+Any operation supported by Photon works. Check the image URL parameters against the [Photon documentation](https://docs.rs/photon-rs/latest/photon_rs/) to experiment with custom parameters.
 
-## Sharing
+## Repository
 
-I have open-sourced this solution on my GitHub repository, and you can deploy it by following the documentation.
+The project is open source on GitHub:
 
 [![ccbikai/vercel-edge-image - GitHub](https://github.html.zone/ccbikai/vercel-edge-image)](https://github.com/ccbikai/vercel-edge-image)
 
-* * *
+---
 
 [![Buy Me A Coffee](https://static.miantiao.me/share/0WmsVP/CcmGr8.png)](https://www.buymeacoffee.com/miantiao)

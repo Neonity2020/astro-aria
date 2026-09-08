@@ -1,32 +1,24 @@
 ---
 layout: ../../layouts/post.astro
-title: BroadcastChannel - Turn your Telegram Channel into a MicroBlog
-description: Turn your Telegram Channel into a MicroBlog
+title: "BroadcastChannel: Turn Your Telegram Channel into a Microblog"
+description: A zero-JS microblog engine that renders Telegram channel updates as clean web pages using modern CSS features.
 dateFormatted: Aug 11, 2024
 ---
 
-I have been sharing some interesting tools on [X](https://x.com/0xKaibi) and also synchronizing them to my Telegram Channel. I saw that [Austin mentioned he is preparing to create a website](https://x.com/austinit/status/1817832660758081651) to compile all the shared content. This reminded me of a template I recently came across called [Sepia](https://github.com/Planetable/SiteTemplateSepia), and I thought about converting the Telegram Channel into a microblog.
+I frequently share tools and links on [X/Twitter](https://x.com/0xKaibi) and sync them over to my Telegram channel. After seeing [Austin mention he was building a site](https://x.com/austinit/status/1817832660758081651) to aggregate his past shares, I remembered the [Sepia](https://github.com/Planetable/SiteTemplateSepia) template I had recently seen and wondered if I could turn my Telegram channel into an automated microblog.
 
-The difficulty wasn't high; I completed the main functionality over a weekend. During the process, I achieved a browser-side implementation with zero JavaScript and would like to share some interesting technical points:
+It turned out to be fairly straightforward—I knocked out the core features over a single weekend. The fun part was achieving **zero client-side JavaScript**. Here are some interesting CSS tricks used along the way:
 
-1. The anti-spoiler mode and the hidden display of the mobile search box were implemented using the CSS ":checked pseudo-class" and the "+ adjacent sibling combinator." [Reference](https://www.tpisoftware.com/tpu/articleDetails/2744)
+1. **Spoiler overlays and mobile search toggle**: Built purely with the CSS `:checked` pseudo-class and the `+` adjacent sibling combinator. ([Reference](https://www.tpisoftware.com/tpu/articleDetails/2744))
+2. **Page transitions**: Handled via CSS View Transitions without client routers. ([Reference](https://liruifengv.com/posts/zero-js-view-transitions/))
+3. **Image lightbox**: Built using the native HTML `popover` attribute. ([Reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/popover))
+4. **Back-to-top button**: Toggled dynamically using CSS `animation-timeline` (supported in Chrome 115+). ([Reference](https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timeline/view))
+5. **Masonry image grid**: Laid out using CSS Grid masonry. ([Reference](https://www.smashingmagazine.com/native-css-masonry-layout-css-grid/))
+6. **Visitor analytics**: Tracked with an ancient web trick—a 1x1 transparent tracking pixel embedded behind the logo.
+7. **Strict zero-JS enforcement**: Guaranteed by sending `Content-Security-Policy: script-src 'none'`. ([Reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src))
 
-2. The transition animations utilized CSS View Transitions. [Reference](https://liruifengv.com/posts/zero-js-view-transitions/)
+Once it was working, I open-sourced it. I did not expect it to resonate so much—it gained over 800 stars in its first week.
 
-3. The image lightbox used the HTML popover attribute. [Reference](https://developer.mozilla.org/zh-CN/docs/Web/HTML/Global_attributes/popover)
-
-4. The display and hiding of the "back to top" feature were implemented using CSS animation-timeline, exclusive to Chrome version 115 and above. [Reference](https://developer.mozilla.org/zh-CN/docs/Web/CSS/animation-timeline/view)
-
-5. The multi-image masonry layout was achieved using grid layout. [Reference](https://www.smashingmagazine.com/native-css-masonry-layout-css-grid/)
-
-6. The visit statistics were tracked using a 1px transparent image as the logo background, an ancient technique that is now rarely supported by visit statistics software.
-
-7. JavaScript execution on the browser side was prohibited using the Content-Security-Policy's script-src 'none'. [Reference](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Content-Security-Policy/script-src)
-
-After completing the project, I open-sourced it, and I was pleasantly surprised by the number of people who liked it; I received over 800 stars in just a week.
-
-If you're interested, you can check it out on GitHub.
-
-<https://github.com/ccbikai/BroadcastChannel>
+If you want to try it out, check out the repository on GitHub:
 
 [![BroadcastChannel repository on GitHub](https://github.html.zone/ccbikai/BroadcastChannel)](https://github.com/ccbikai/BroadcastChannel)

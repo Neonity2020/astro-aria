@@ -1,45 +1,49 @@
 ---
 layout: ../../layouts/post.astro
 title: Run Python in Your Browser Effortlessly
-description: Run Python programs in the browser easily using Pyodide and WebAssembly for seamless execution of code and packages
+description: Using WebAssembly and Pyodide to run Python directly in the browser, taking Microsoft's MarkItDown as an example to convert Office files with zero installation.
 dateFormatted: Dec 21, 2024
 ---
 
-Microsoft recently open-sourced [MarkItDown](https://github.com/microsoft/markitdown), a program that converts Office files to Markdown format. The project quickly climbed to GitHub's trending list upon release.
+Microsoft recently open-sourced [MarkItDown](https://github.com/microsoft/markitdown), a tool that converts various Office documents into Markdown format. The repository topped GitHub's trending chart right after launch.
 
-However, since MarkItDown is a Python program, it might be challenging for non-technical users to use. To address this issue, I thought of using WebAssembly technology to run Python code directly in the browser.
+Because MarkItDown is written in Python, getting it to run locally can be tricky for non-technical users. To make it more accessible, I looked into running Python code directly inside the browser using WebAssembly.
 
-Pyodide is an open-source program that runs Python in the browser, using WebAssembly to port CPython, so it supports all Python syntax. Cloudflare's Python Workers also use Pyodide.
+The standard open-source way to run Python in the browser is **Pyodide**. It ports CPython to WebAssembly, so normal Python syntax works as expected. Cloudflare's Python Workers are built on Pyodide too.
 
 > Pyodide is a port of CPython to WebAssembly/Emscripten.
 >
-> Pyodide makes it possible to install and run Python packages in the browser using micropip. Any pure Python package with wheels available on PyPI is supported.
+> It makes it possible to install and run Python packages in the browser using micropip. Any pure Python package with wheels available on PyPI is supported.
 >
-> Many packages with C extensions have also been ported for use with Pyodide. These include common packages like regex, PyYAML, lxml, and scientific Python packages including NumPy, pandas, SciPy, Matplotlib, and scikit-learn. Pyodide comes with a robust JavaScript ⟺ Python foreign function interface that allows you to freely mix these languages in your code with minimal friction. This includes comprehensive support for error handling, async/await, and more.
+> Many packages with C extensions have also been ported for use with Pyodide, including regex, PyYAML, lxml, and scientific Python packages like NumPy, pandas, SciPy, Matplotlib, and scikit-learn. Pyodide comes with a foreign function interface between JavaScript and Python, allowing you to mix both languages with minimal friction, including full support for error handling and async/await.
 >
-> When used in the browser, Python has full access to the Web APIs.
+> Inside the browser, Python has full access to the Web APIs.
 
-Trying to run MarkItDown was surprisingly smooth, proving that WebAssembly is truly the future of browsers.
+Running MarkItDown through Pyodide turned out to be surprisingly smooth—WebAssembly really is the future of the browser.
 
-The main challenges faced and solutions:
+## Main Hurdles and Workarounds
 
-1. **File Transfer Issue**: How to pass user-selected files to the Python runtime in the Worker?
+1. **File Transfer**: How do you hand user-selected files over to the Python runtime inside a Web Worker?
+   - **Solution**: Convert the browser `File` object into an `ArrayBuffer`, then write it straight into Emscripten's virtual filesystem before passing the path to Python.
 
-2. **Dependency Installation Issue**: Limited access to PyPI in mainland China.
+2. **Package Installation**: PyPI access can be spotty in mainland China.
+   - **Solution**: Set up a dedicated PyPI mirror on Cloudflare. See: [Cloudflare PyPI Mirror](https://github.com/miantiao-me/cloudflare-pypi-mirror).
 
-Eventually, we successfully implemented a MarkItDown tool that runs entirely in the browser. Feel free to try it out at [Office File to Markdown](https://www.html.zone/markitdown/).
+In the end, I put together a fully client-side MarkItDown web tool. You can try it out here: [Office File to Markdown](https://www.html.zone/markitdown/).
 
 [![Office File to Markdown](https://www.html.zone/markitdown.png)](https://www.html.zone/markitdown/)
 
-Here's the core code for running Python in the Worker:
+## Core Worker Code
 
-```javascript
-// eslint-disable-next-line no-undef
+Here is the core Web Worker code that spins up Pyodide and runs the conversion:
+
+```js
 importScripts('https://testingcf.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js')
 
+// npmmirror supports pyodide, but does not support the nested zip packages
+// importScripts('https://registry.npmmirror.com/pyodide/0.26.4/files/pyodide.js')
 
 async function loadPyodideAndPackages() {
-  // eslint-disable-next-line no-undef
   const pyodide = await loadPyodide()
   globalThis.pyodide = pyodide
 
@@ -47,8 +51,9 @@ async function loadPyodideAndPackages() {
 
   const micropip = pyodide.pyimport('micropip')
 
+  // Requires PEP 691 and CORS support
   // micropip.set_index_urls([
-  // 'https://pypi.your.domains/pypi/simple',  
+  //   'https://pypi.your.domains/pypi/simple',
   // ])
 
   await micropip.install('markitdown==0.0.1a2')

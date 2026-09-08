@@ -1,21 +1,21 @@
 ---
 layout: ../../layouts/post.astro
-title: Solving the issue of Cloudflare Web Analytics being blocked by AdBlock
-description: Solving the issue of Cloudflare Web Analytics being blocked by AdBlock
+title: Preventing AdBlock from Blocking Cloudflare Web Analytics
+description: Proxy Cloudflare Web Analytics through a Cloudflare Worker to bypass common ad-block filter lists.
 dateFormatted: Jan 8th, 2024
 ---
 
-Earlier, we solved the issues of [Vercel Analytics](https://dev.to/ccbikai/jie-jue-vercel-analytics-bei-adblock-ping-bi-wen-ti-1o21-temp-slug-5601874) and [Umami](https://dev.to/ccbikai/jie-jue-umami-bei-adblock-ping-bi-wen-ti-3kc2-temp-slug-2355567) being blocked by AdBlock, and now we are also going to solve the problem for [Email.ML](https://email.ml/) which uses [Cloudflare Web Analytics](https://www.cloudflare.com/zh-cn/web-analytics/).
+After routing around ad-blockers for [Vercel Analytics](/post/vercel-kill-adblock) and [Umami](/post/umami-kill-adblock), I decided to do the same for [TempMail.Best](https://tempmail.best/), which uses [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/).
 
-Cloudflare Web Analytics is blocked by the `||cloudflareinsights.com^` rule. Its script address is `https://static.cloudflareinsights.com/beacon.min.js`, and the data reporting address is `https://cloudflareinsights.com/cdn-cgi/rum`.
+AdBlock catches Cloudflare Web Analytics with the `||cloudflareinsights.com^` rule. The tracker script loads from `https://static.cloudflareinsights.com/beacon.min.js`, and telemetry is sent to `https://cloudflareinsights.com/cdn-cgi/rum`.
 
 ![||cloudflareinsights.com^](https://static.miantiao.me/share/2024/U4WHW7/GtPNhj.png)
 
-So, just like Umami, we will proxy the script address and forward the data to the data reporting address.
+The fix is identical to what I did for Umami: proxy the JavaScript beacon through your own domain and forward ingest requests to Cloudflare's endpoint.
 
-## Solution
+## Setup
 
-Create a Worker in Cloudflare Workers and paste the following JavaScript code. Configure the domain and test if the script address can be accessed properly. Mine is [https://cwa.miantiao.me/mt-demo.js](https://cwa.miantiao.me/mt-demo.js). The `mt-demo` can be replaced with any disguise address, the script above is already adapted.
+Create a new Cloudflare Worker and paste in the script below. Bind your custom domain and verify the script path (mine is `https://cwa.miantiao.me/mt-demo.js`). You can rename `mt-demo` to any path slug you prefer:
 
 ```js
 const CWA_API = 'https://cloudflareinsights.com/cdn-cgi/rum'
@@ -51,20 +51,20 @@ export default {
     })
   },
 };
-
 ```
 
-Then inject the script into your website project, referring to my code:
+Inject the tracking script into your site's HTML:
 
 ```html
 <script async src='https://cwa.miantiao.me/mt-demo.js' data-cf-beacon='{"send":{"to": "https://cwa.miantiao.me/mt-demo"},"token": "5403f4dc926c4e61a757d630b1ec21ad"}'></script>
-
 ```
 
-`src` is the script address, replace `mt-demo` with any disguise address. `data-cf-beacon` contains the send to data reporting address, replace `mt-demo` with any disguise address, the script is already adapted. Remember to change the `token` to your site's token.
+- `src` is the script URL on your proxy domain.
+- `data-cf-beacon` contains the `send.to` ingest endpoint, also pointing to your proxy domain.
+- Remember to replace the `token` with your site's actual token.
 
-You can verify it on [Email.ML](https://email.ml/) or [HTML.ZONE](https://html.zone/).
+You can test this setup live on [TempMail.Best](https://tempmail.best/) or [HTML.ZONE](https://html.zone/).
 
-**Note that using this solution requires disabling automatic configuration, otherwise the data will not be counted.**
+**Important: In the Cloudflare dashboard, make sure to disable "Automatic Setup", or your custom snippet won't record page views.**
 
 ![Disable automatic configuration](https://static.miantiao.me/share/2024/AnFeat/jqthrz.png)

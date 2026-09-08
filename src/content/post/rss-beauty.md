@@ -1,43 +1,41 @@
 ---
 layout: ../../layouts/post.astro
-title: RSS.Beauty - Make Your RSS Beautiful!
-description: Beautify your RSS feeds with RSS.Beauty, featuring elegant interfaces, responsive design, and self-hosting support. Try it now!
+title: "RSS.Beauty: Making Raw Feeds Pleasant to Read"
+description: An XSLT-based stylesheet for RSS and Atom feeds that renders raw XML as clean, responsive web pages directly in the browser.
 dateFormatted: Dec 31, 2024
 ---
 
-> **The tool that has been delayed for nearly half a year is finally completed.**
+> A side project I had been procrastinating on for nearly six months is finally shipped.
 
-[RSS.Beauty](https://rss.beauty/) is an RSS beautification tool based on XSLT technology that transforms ordinary RSS/Atom feeds into elegant reading interfaces.
+When people click an RSS link in a browser, they usually get hit with an intimidating wall of raw XML. [RSS.Beauty](https://rss.beauty/) attaches an XSLT stylesheet to RSS 2.0 and Atom 1.0 feeds, turning that raw data into a clean, mobile-friendly reading interface right in the browser.
 
 ![RSS.Beauty](https://rss.beauty/banner.png)
 
-## Key Features
+## Features
 
-- 🎨 Beautiful reading interface
-- 🔄 Support for RSS 2.0 and Atom 1.0
-- 📱 Responsive design, mobile-friendly
-- 🔌 One-click subscription to major RSS readers
-- 🖥 Self-hosting support
+- Clean, typography-focused reading interface
+- Full compatibility with RSS 2.0 and Atom 1.0
+- Responsive layout for mobile devices
+- One-click subscription links for popular feed readers
+- Self-hostable via static hosting or Docker
 
 ## Quick Start
 
-Visit [RSS.Beauty](https://rss.beauty) and enter any RSS feed URL to try it out.
+Head over to [https://rss.beauty](https://rss.beauty) and paste in any feed URL.
 
-Or visit <https://rss.beauty/rss?url=https%3A%2F%2Fgithub.com%2Fccbikai%2FRSS.Beauty%2Freleases.atom> to try it out.
+Or test a live feed directly: [Sample Feed Output](https://rss.beauty/rss?url=https%3A%2F%2Fgithub.com%2Fccbikai%2FRSS.Beauty%2Freleases.atom)
 
 ## Tech Stack
 
 - [Astro](https://astro.build)
-- [TailwindCSS](https://tailwindcss.com)
+- [Tailwind CSS](https://tailwindcss.com)
 - [XSLT](https://www.w3.org/TR/xslt/)
 
 ## Deployment
 
-Detailed deployment guide can be found in [Deployment Guide](./docs/deployment-guide.md).
-
 ### Serverless
 
-Support deployment to Cloudflare Pages, Vercel, Netlify, etc. After [Fork](https://github.com/ccbikai/RSS.Beauty/fork) this project, follow the platform tutorial to deploy.
+Deployable as static assets to Cloudflare Pages, Vercel, or Netlify. Fork the repository and connect your Git provider.
 
 ### Docker
 
@@ -50,7 +48,7 @@ docker run -d --name rss-beauty -p 4321:4321 ghcr.io/ccbikai/rss.beauty:main
 
 - [Tailus UI](https://html.tailus.io/)
 
-## Sponsor
+## Support
 
-1. [Follow me on 𝕏](https://404.li/kai)
-1. [Sponsor me on GitHub](https://github.com/sponsors/ccbikai)
+- [Follow me on X](https://404.li/kai)
+- [Sponsor on GitHub](https://github.com/sponsors/ccbikai)

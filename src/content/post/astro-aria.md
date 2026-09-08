@@ -1,14 +1,14 @@
 ---
 layout: ../../layouts/post.astro
-title: Aria - a minimalist Astro homepage template
-description: Aria is a template for Astro
+title: "Aria: A Minimalist Astro Homepage Template"
+description: Porting DevDojo's clean Aria template to Astro as an open-source personal homepage theme.
 dateFormatted: Jun 6, 2024
 ---
 
 [![GitHub](https://github.html.zone/ccbikai/astro-aria)](https://github.com/ccbikai/astro-aria)
 
-Aria is a template I found on [https://aria.devdojo.io/](https://aria.devdojo.io/). It's clean and beautiful, so I decided to use it for my own homepage and ported it to Astro.
+I stumbled across the Aria template on [https://aria.devdojo.io/](https://aria.devdojo.io/). It looked clean and well-balanced, so I decided to port it to Astro for my own homepage.
 
-It's already open source, so feel free to use it if you're interested.
+It is open source—feel free to grab it if you like the look.
 
-<https://github.com/ccbikai/astro-aria>
+Repository: [https://github.com/ccbikai/astro-aria](https://github.com/ccbikai/astro-aria)

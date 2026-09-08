@@ -1,19 +1,19 @@
 ---
 layout: ../../layouts/post.astro
 title: Minimal Docker Image Packaging for Vite SSR Projects
-description: Minimal Docker Image Packaging for Vite SSR Projects
-dateFormatted: Sep 1, 2024
+description: How I shrunk a Vite SSR Docker image from 1.06GB down to 135MB using multi-stage builds and dependency inlining.
+dateFormatted: Aug 31, 2024
 ---
 
-Recently, I've been preparing to migrate projects hosted on Cloudflare, Vercel, and Netlify to my own VPS to run via Docker. I revisited Docker image packaging. However, even a small project ended up being packaged into a 1.05GB image, which is clearly unacceptable. So, I researched minimal Docker image packaging for Node.js projects, reducing the image size from 1.06GB to 135MB.
+I was getting ready to move a few projects hosted on Cloudflare, Vercel, and Netlify over to my own VPS running Docker, so I brushed up on container packaging. But when a tiny project built into a 1.05 GB image, that was obviously not going to fly. So I dug into minimal Docker packaging for Node.js projects, cutting the image size from 1.06 GB down to 135 MB.
 
-The example project is an Astro project using Vite as the build tool, running in SSR mode.
+The demo app is an Astro project using Vite as the build tool, running in SSR mode.
 
-## Version 0
+## Version 0: Base Alpine Image
 
-> The main idea is to use a minimal system image, opting for the Alpine Linux image.
+> The idea: Start with a minimal base image, using Alpine Linux.
 
-Following the [Astro official documentation for Server-Side Rendering (SSR)](https://docs.astro.build/en/recipes/docker/#ssr), I replaced the base image with node:lts-alpine, and switched from NPM to PNPM. The resulting image size was 1.06GB, which is the worst-case scenario.
+Following the [Astro SSR Docker documentation](https://docs.astro.build/en/recipes/docker/#ssr), I used `node:lts-alpine` as the base image and PNPM as the package manager. The resulting image came out to 1.06 GB—the worst-case baseline.
 
 ```dockerfile
 FROM node:lts-alpine AS base
@@ -49,18 +49,18 @@ docker build -t v0 .
  => CACHED [3/6] WORKDIR /app                                                                                                                                                          0.0s
  => [4/6] COPY . .                                                                                                                                                                     2.0s
  => [5/6] RUN pnpm install --frozen-lockfile                                                                                                                                          85.7s
- => [6/6] RUN export $(cat .env.example) && pnpm run build                                                                                                      11.1s
+ => [6/6] RUN export $(cat .env.example) && pnpm run build                                                                                                                            11.1s
  => exporting to image                                                                                                                                                                13.4s
  => => exporting layers                                                                                                                                                               13.4s
  => => writing image sha256:653236defcbb8d99d83dc550f1deb55e48b49d7925a295049806ebac8c104d4a                                                                                           0.0s
  => => naming to docker.io/library/v0
 ```
 
-## Version 1
+## Version 1: Multi-Stage Build
 
-> The main idea is to first install production dependencies, creating the first layer. Then install all dependencies, package to generate JavaScript artifacts, creating the second layer. Finally, copy the production dependencies and JavaScript artifacts to the runtime environment.
+> The idea: Install prod dependencies in one stage, build full bundles in another, and copy only production `node_modules` and compiled code into the final image.
 
-Following the [multi-stage build (using SSR)](https://docs.astro.build/en/recipes/docker/#multi-stage-build-using-ssr) approach, I reduced the image size to 306MB. This is a significant reduction, but the drawback is that **it requires explicitly specifying production dependencies; if any are missed, runtime errors will occur**.
+Following Astro's [multi-stage SSR build recipe](https://docs.astro.build/en/recipes/docker/#multi-stage-build-using-ssr) brought the image down to 306 MB. A solid improvement, but it has one big catch: **you have to explicitly track production dependencies. If you miss one, it blows up at runtime**.
 
 ```dockerfile
 FROM node:lts-alpine AS base
@@ -118,23 +118,23 @@ docker build -t v1 .
  => => naming to docker.io/library/v1
 ```
 
-## Version 2
+## Version 2: Inlining Dependencies
 
-> The main idea is to inline node_modules into the JavaScript files, ultimately copying only the JavaScript files to the runtime environment.
+> The idea: Bundle and inline `node_modules` directly into the JavaScript output, so you do not need `node_modules` in the production container at all.
 
-When I looked into Next.js, I remembered that node_modules could be inlined into JavaScript files, eliminating the need for node_modules. So, I researched and found that Vite SSR also supports this. Therefore, I decided to use the inlining method in the Docker environment, avoiding the need to copy node_modules, and only copying the final dist artifacts, reducing the image size to 135MB.
+When working with Next.js previously, I remembered it could inline `node_modules` into the server output so you don't have to ship them. I checked whether Vite SSR could do the same, and it turns out it does! When building for Docker, we enable inlining, skip copying `node_modules`, and only ship `dist`. That dropped the image down to **135 MB**.
 
-Changes to the packaging script:
+Configuration change in Vite/Astro config:
 
 ```js
 vite: {
   ssr: {
-    noExternal: process.env.DOCKER ? !!process.env.DOCKER : undefined;
+    noExternal: process.env.DOCKER ? !!process.env.DOCKER : undefined
   }
 }
 ```
 
-**The final Dockerfile is as follows**:
+**The final Dockerfile**:
 
 ```dockerfile
 FROM node:lts-alpine AS base
@@ -190,7 +190,9 @@ CMD node ./dist/server/entry.mjs
  => => naming to docker.io/library/v2
 ```
 
-In the end, the size was reduced from 1.06GB to 135MB, and the build time was reduced from 113.8s to 24.9s.
+## Results
+
+Image size dropped from 1.06 GB to 135 MB, and build duration dropped from 113.8 s to 24.9 s:
 
 ```log
 docker images
@@ -200,6 +202,6 @@ v1                                 latest      8ae6b2bddf0a   6 minutes ago    3
 v0                                 latest      653236defcbb   11 minutes ago   1.06GB
 ```
 
-The example project is open-source and can be viewed on [GitHub](https://github.com/ccbikai/BroadcastChannel/pkgs/container/broadcastchannel).
+The sample project is open-source on [GitHub](https://github.com/miantiao-me/BroadcastChannel/pkgs/container/broadcastchannel).
 
-[![BroadcastChannel](https://github.html.zone/ccbikai/BroadcastChannel)](https://github.com/ccbikai/BroadcastChannel)
+[![BroadcastChannel](https://github.html.zone/miantiao-me/BroadcastChannel)](https://github.com/miantiao-me/BroadcastChannel)

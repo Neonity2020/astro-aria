@@ -1,33 +1,33 @@
 ---
 layout: ../../layouts/post.astro
-title: Cloudflare's New PyPI Mirror Service
-description: Cloudflare PyPI Mirror supports PEP 691 and CORS, enabling PyPI access in mainland China for Micropip with open-source code available
+title: Building a CORS-Friendly PyPI Mirror on Cloudflare
+description: Set up a lightweight PyPI mirror on Cloudflare Workers or Snippets that supports PEP 691 and CORS for in-browser Pyodide environments.
 dateFormatted: Dec 21, 2024
 ---
 
-[Pyodide](https://micropip.pyodide.org/en/stable/index.html) is a library that runs Python in WebAssembly, using [Micropip](https://micropip.pyodide.org/en/stable/index.html) to install packages from PyPI. Due to WebAssembly's requirements for CORS and PEP 691 when running in browsers, and the fact that Tsinghua's TUNA mirror doesn't support CORS, this creates some challenges.
+[Pyodide](https://pyodide.org/) runs Python inside WebAssembly, using [Micropip](https://micropip.pyodide.org/) to fetch packages from PyPI. When running in a browser, Micropip has two strict requirements: proper CORS headers, and support for the JSON-based Simple API ([PEP 691](https://peps.python.org/pep-0691/)).
 
-PyPI is not directly accessible in mainland China, but there are many mirrors available. Institutions like Tsinghua University, Alibaba Cloud, Tencent Cloud, and Huawei Cloud provide mirror services. However, except for Tsinghua's TUNA mirror, none of them support the JSON-based Simple API for Python ([PEP 691](https://peps.python.org/pep-0691/)).
+Direct access to PyPI from mainland China is often unreliable, but domestic mirrors present their own challenges. Mirrors like Alibaba Cloud, Tencent Cloud, and Huawei Cloud only serve the legacy HTML index. Tsinghua's TUNA mirror supports PEP 691, but does not send CORS headers.
 
-Since WebAssembly requires both CORS support and PEP 691 compliance when running in browsers, and Tsinghua's TUNA mirror doesn't support CORS, there might not be any suitable PyPI mirrors available in mainland China for Micropip.
+As a result, there were essentially zero domestic mirrors that Micropip could pull from directly inside the browser.
 
-Given this situation, I've set up a Cloudflare-based mirror that supports both PEP 691 and CORS.
+To bridge this gap, I set up a Cloudflare-based mirror that adds CORS headers and handles PEP 691 lookups.
 
-You can build this using either Workers or Snippets, each with their own advantages and disadvantages:
+You can deploy it using either Cloudflare Workers or Cloudflare Snippets:
 
 ### [Workers](https://workers.cloudflare.com/)
 
-Pros: Available with the free plan.
-
-Cons: Generates many Worker requests, which might exceed free plan limits and require payment or become unusable.
+- **Pros**: Runs on the Free tier.
+- **Cons**: Every package check counts as a Worker request, which can burn through free quotas quickly.
 
 ### [Snippets](https://developers.cloudflare.com/rules/snippets/)
 
-Pros: Doesn't generate Worker requests, supports high usage volumes. Cons: Currently only available for Pro plans and above, not available on Free tier.
+- **Pros**: Does not count against Worker request limits, ideal for high traffic.
+- **Cons**: Currently requires a Pro plan or above.
 
 ## Code
 
-The corresponding code has been open-sourced and is available at:
+The project is open source on GitHub:
 
 [https://github.com/ccbikai/cloudflare-pypi-mirror](https://github.com/ccbikai/cloudflare-pypi-mirror)
 

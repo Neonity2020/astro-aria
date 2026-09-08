@@ -1,27 +1,27 @@
 ---
 layout: ../../layouts/post.astro
-title: Use Cloudflare Workers to concat audio files
-description: How to use Cloudflare Workers to merge audio files using FFmpeg in the browser.
+title: Concatenating Audio Files in Cloudflare Workers
+description: Stitching multiple audio tracks together in Cloudflare Workers by leveraging Browser Rendering and WASM-based FFmpeg.
 dateFormatted: April 19, 2025
 ---
 
-I recently updated the [Hacker News Chinese Podcast](https://hacker-news.agi.li/) to use a dual-speaker format. Since current speech synthesis models don't handle two-person dialogues very well, I needed a way to merge the audio files for each speaker.
+I recently switched the [Hacker News Podcast](https://hacker-news.agi.li/) to a two-speaker format. Because TTS models don't handle multi-speaker dialogues well in a single pass, I needed a way to stitch individual speaker tracks together.
 
-The project runs on the Cloudflare Workers runtime, which lacks many Node.js features and cannot call C++ extensions. Furthermore, Cloudflare Containers aren't generally available yet. This meant I had to use the Browser Rendering API for the audio merging task.
+The project runs on the Cloudflare Workers runtime (inside Cloudflare Workflows), which lacks native Node.js APIs and cannot run native C++ binaries. Cloudflare Containers wasn't generally available yet, so Browser Rendering was the only viable escape hatch.
 
-FFmpeg is the standard tool for merging audio files, and fortunately, it can now run in the browser via WASM. So, the overall technical approach is:
+Audio concatenation is usually an FFmpeg job, and fortunately FFmpeg can run in the browser via WebAssembly. The overall approach:
 
-1.  Use a Worker Binding to launch a browser instance (via the Browser Rendering API).
-2.  Have the browser navigate to an audio merging page, perform the merge operation on the audio files, and return the result as a Blob.
-3.  Receive the Blob back in the Worker and upload it to R2 storage.
+1. Launch a headless browser instance using a Worker binding (Cloudflare Browser Rendering).
+2. Navigate to an internal page that runs WASM FFmpeg to merge the tracks and returns an audio Blob.
+3. Send the Blob back to the Worker and store the final output in R2.
 
-The overall code footprint for this isn't large, but debugging was tricky because Browser Rendering runs remotely.
+The code is pretty straightforward, though debugging remote headless browsers was a bit of a headache.
 
-Here's the final implementation code:
+Here is the implementation:
 
-### Browser-Side Audio Merging Code
+### Browser-Side Audio Merging
 
-```
+```html
 <!doctype html>
 <html lang="en">
   <head>
@@ -87,9 +87,9 @@ Here's the final implementation code:
 </html>
 ```
 
-### Worker Codes
+### Worker Invocation
 
-```
+```ts
 export async function concatAudioFiles(audioFiles: string[], BROWSER: Fetcher, { workerUrl }: { workerUrl: string }) {
   const browser = await puppeteer.launch(BROWSER)
   const page = await browser.newPage()
@@ -122,4 +122,4 @@ const audio = await concatAudioFiles(audioFiles, env.BROWSER, { workerUrl: env.H
 return new Response(audio)
 ```
 
-The above code is basically written by Cursor, and the final effect can be viewed at [Hacker News Code Repository](https://github.com/ccbikai/hacker-news/tree/main/worker).
+Cursor wrote most of the glue code above. You can see the full working pipeline in the [Hacker News repo](https://github.com/miantiao-me/hacker-news/tree/main/worker).

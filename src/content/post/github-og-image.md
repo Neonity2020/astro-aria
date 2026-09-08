@@ -1,33 +1,34 @@
 ---
 layout: ../../layouts/post.astro
-title: Extract GitHub OpenGraph Images for Card Previews
-description: Extract GitHub OpenGraph Images for Card Previews
+title: Extracting GitHub OpenGraph Images for Rich Card Previews
+description: A simple proxy to fetch official GitHub OpenGraph preview cards for repositories, issues, pull requests, discussions, and commits.
 dateFormatted: Dec 19, 2023
 ---
 
-Previously, when sharing GitHub on my blog, I always used [GitHub Repository Card](https://gh-card.dev/) for sharing, but it doesn't have good support for Chinese and doesn't support line breaks.
+Whenever I embedded GitHub repositories in blog posts, I used [GitHub Repository Card](https://gh-card.dev/). But it handled non-Latin text poorly and had issues with text overflowing without line breaks:
 
 [![ccbikai/cloudflare-worker-image - GitHub](https://gh-card.dev/repos/ccbikai/cloudflare-worker-image.svg?fullname=)](https://github.com/ccbikai/cloudflare-worker-image)
 
-Originally, I planned to create my own using [@vercel/og](https://vercel.com/docs/functions/edge-functions/og-image-generation), but I accidentally discovered that GitHub provides comprehensive and beautiful Open Graph images on Twitter. So, I wrote a script to extract and use them for blog previews.
+I initially planned to roll my own card generator using [@vercel/og](https://vercel.com/docs/functions/edge-functions/og-image-generation). Then I noticed that GitHub's native OpenGraph preview cards already look clean, well-formatted, and informative. So I wrote a small proxy worker to extract and serve them for blog embeds.
 
-## Demo
+## How It Looks
 
 ![nasa/fprime - GitHub](https://github.html.zone/nasa/fprime)
 
 ![A framework for building Open Graph images](https://static.miantiao.me/share/9ZxTs8/RZHfnD.png)
 
-In addition to repositories, GitHub's Open Graph also supports previews for Issue, Pull Request, Discussion, and Commit modules.
+Beyond repositories, GitHub also renders rich OpenGraph previews for issues, pull requests, discussions, and individual commits.
 
-## Usage
+## How to Use
 
-**Modify `.com` to `.html.zone` on any GitHub page**.
+**Replace `.com` with `.html.zone` in any GitHub URL.**
 
-For example, [https://github.com/vercel/next.js](https://github.com/vercel/next.js) => [https://github.html.zone/vercel/next.js](https://github.html.zone/vercel/next.js).
+For example:
+`https://github.com/vercel/next.js` => `https://github.html.zone/vercel/next.js`
 
-### Previews
+### Previews Across GitHub Entities
 
-#### Repo
+#### Repository
 
 ![Repo](https://github.html.zone/vercel/next.js)
 
@@ -49,6 +50,6 @@ For example, [https://github.com/vercel/next.js](https://github.com/vercel/next.
 
 ## Source Code
 
-The code has been shared on GitHub for those interested to explore.
+The code is open source on GitHub:
 
 [![ccbikai/github-og-image - GitHub](https://github.html.zone/ccbikai/github-og-image)](https://github.com/ccbikai/github-og-image)

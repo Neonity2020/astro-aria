@@ -1,21 +1,25 @@
 ---
 layout: ../../layouts/post.astro
-title: Solving Vercel Analytics Blocked by AdBlock Issue
-description: Solving Vercel Analytics Blocked by AdBlock Issue
+title: Preventing AdBlock from Blocking Vercel Analytics
+description: Use Vercel rewrites and a custom script endpoint to bypass AdBlock filters for Vercel Analytics.
 dateFormatted: Jun 6, 2024
 ---
 
-[DNS.Surf](https://dns.surf/) runs 100% on Vercel, so Vercel Analytics is used for access statistics. However, many users who have AdBlock installed experience issues with access statistics not being recorded. Today, we will solve the problem of AdBlock blocking access statistics, while still relying on Vercel 100%.
+[DNS.Surf](https://dns.surf/) originally ran entirely on Vercel, so I used Vercel Analytics for tracking page views. But like with most web analytics tools, visitors with AdBlock installed had their telemetry blocked by default. Here is how to route around the block entirely within Vercel.
 
-The core principle of AdBlock is to block certain network requests and page elements using rules. Vercel Analytics is blocked by the rule `/_vercel/insights/script.js`, and it may also block `/_vercel/insights/event`. To solve this problem, we just need to make these two URLs less recognizable.
+AdBlock matches network requests and DOM elements against community filter lists. Vercel Analytics gets blocked by the rule `/_vercel/insights/script.js`, and filter lists often block `/_vercel/insights/event` as well:
 
 ![/_vercel/insights/script.js](https://static.miantiao.me/share/2024/JbSVLo/5aOZdV.png)
 
+To bypass this, we just need to mask these URLs under a generic path that filter lists won't flag.
+
 ## Solution
 
-Vercel comes with a Rewrite feature, so we just need to rewrite the disguised path `/mt-demo` to `/_vercel/insights`. The disguised path can be any unique path that does not conflict with existing paths. If it gets blocked, just use a different one. The vercel.json configuration is as follows:
+Vercel provides native path rewriting via `vercel.json`. You can rewrite an arbitrary path like `/mt-demo` to `/_vercel/insights`. Pick any slug that doesn't collide with existing routes; if filter lists ever catch up, just change the slug.
 
-```js
+Add this to `vercel.json`:
+
+```json
 {
   "rewrites": [
     {
@@ -26,9 +30,9 @@ Vercel comes with a Rewrite feature, so we just need to rewrite the disguised pa
 }
 ```
 
-Note that the destination should be the complete URL, otherwise it will not work.
+*Note: Use the full absolute URL for `destination`, or the internal proxy will not resolve properly.*
 
-In the official tutorial, different frameworks use [@vercel/analytics](https://vercel.com/docs/analytics/package) to inject the analytics script into the page, but it does not support custom scripts and data reporting URLs. Therefore, we need to use the HTML method to inject the script.
+Official Vercel SDK packages like [@vercel/analytics](https://vercel.com/docs/analytics/package) do not expose options for overriding the script and ingest URLs. Instead, inject the script manually via plain HTML:
 
 ```html
 <script>
@@ -37,8 +41,8 @@ In the official tutorial, different frameworks use [@vercel/analytics](https://v
 <script async src="/mt-demo/script.js" data-endpoint="/mt-demo"></script>
 ```
 
-`src` is the script URL, and `data-endpoint` is the data reporting URL. Although it is not mentioned in the official documentation, the script does support it. Remember to replace `mt-demo` with your disguised path.
+- `src` is the script URL under your custom rewrite prefix.
+- `data-endpoint` is the ingest reporting path. (Undocumented in the official Vercel docs, but fully supported by the script).
+- Remember to replace `mt-demo` with your chosen slug.
 
-If you are using a different framework, you can look for the method to inject scripts in that framework to adapt it to your own usage.
-
-You can verify the effect using [DNS.Surf](https://dns.surf/).
+You can verify the setup live on [DNS.Surf](https://dns.surf/).
